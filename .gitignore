@@ -4,3 +4,6 @@
 
 getting-started/getting-started
 getting-started-sam/sam-app/hello-world/hello-world
+tutorial/dynamodb/dynamodb
+tutorial/kinesis/kinesis
+tutorial/s3/s3
