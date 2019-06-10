@@ -1,0 +1,39 @@
+#  For full config options, check the docs:
+#    docs.serverless.com
+
+service: aws-go
+
+frameworkVersion: ">=1.28.0 <2.0.0"
+
+provider:
+  name: aws
+  runtime: go1.x
+  region: ap-northeast-1
+  stackName: ${self:service}
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./bin/**
+
+functions:
+  hello:
+    handler: bin/hello
+    name: hello
+    events:
+      - http:
+          path: hello
+          method: get
+  world:
+    handler: bin/world
+    name: world
+    events:
+      - http:
+          path: world
+          method: get
+
+resources:
+  Description: >
+    Getting started Serverless Framework from golang
+
