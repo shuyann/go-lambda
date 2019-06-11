@@ -1,0 +1,36 @@
+# For full config options, check the docs:
+#    docs.serverless.com
+
+service: s3-function
+
+frameworkVersion: ">=1.28.0 <2.0.0"
+
+provider:
+  name: aws
+  runtime: go1.x
+  region: ap-northeast-1
+  stackName: ${self:service}
+  iamManagedPolicies:
+    - 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./bin/**
+
+functions:
+  hello:
+    handler: bin/hello
+    name: hello
+    environment:
+      bucket: 'lambdaexample0' # write bucket example.
+    events:
+      - s3:
+          bucket: serverless-example-s3 # read bucket example.
+          event: s3:ObjectCreated:*
+
+resources:
+  Description: >
+    S3 function with Serverless Framework from golang
+
