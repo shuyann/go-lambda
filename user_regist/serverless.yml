@@ -1,0 +1,51 @@
+# For full config options, check the docs:
+#    docs.serverless.com
+
+service: user-regist
+frameworkVersion: ">=1.28.0 <2.0.0"
+
+provider:
+  name: aws
+  runtime: go1.x
+  region: ap-northeast-1
+  stackName: ${self:service}
+  apiName: UserRegistAPI
+  memorySize: 512
+  timeout: 10
+  logRetentionInDays: 7
+  iamManagedPolicies:
+    - 'arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess'
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./bin/**
+
+functions:
+  user-regist:
+    handler: bin/hello
+    name: user_regist
+    events:
+      - http:
+          path: /
+          method: post
+
+resources:
+  Resources:
+    user:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: user
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+  Description: >
+    User Regist function with Serverless Framework from golang
+
