@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/google/uuid"
 	"github.com/guregu/dynamo"
 	"log"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 )
@@ -20,6 +23,7 @@ type UserItem struct {
 	ID         string `dynamo:"id"`
 	Name       string `dynamo:"name"`
 	Email      string `dynamo:"email"`
+	Url        string `dynamo:"url"`
 	AcceptedAt int    `dynamo:"accepted_at"`
 }
 
@@ -31,7 +35,10 @@ func Handler(ctx context.Context, req Request) (Response, error) {
 	db := dynamo.New(sess)
 	table := db.Table("user")
 
-	// Parse form data.
+	bucket := os.Getenv("bucket")
+	key := os.Getenv("key")
+	email := os.Getenv("email")
+
 	values, err := url.ParseQuery(req.Body)
 	if err != nil {
 		log.Fatal(err)
@@ -44,15 +51,53 @@ func Handler(ctx context.Context, req Request) (Response, error) {
 		log.Fatal(err)
 	}
 
+	s3Cli := s3.New(sess)
+	request, _ := s3Cli.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	preSignedUrl, err := request.Presign(15 * time.Minute)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	userItem := UserItem{
 		ID:         uuid.New().String(),
 		Name:       username,
 		Email:      email,
+		Url:        preSignedUrl,
 		AcceptedAt: now,
 	}
-	fmt.Println("INFO userItem: ", userItem)
 
 	if err = table.Put(userItem).Run(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Please change region to us-east for ses use
+	sesCli := ses.New(sess)
+
+	sesInput := &ses.SendEmailInput{
+		Destination: &ses.Destination{
+			ToAddresses: []*string{
+				aws.String(email),
+			},
+		},
+		Message: &ses.Message{
+			Body: &ses.Body{
+				Text: &ses.Content{
+					Charset: aws.String("UTF-8"),
+					Data:    aws.String(preSignedUrl),
+				},
+			},
+			Subject: &ses.Content{
+				Charset: aws.String("UTF-8"),
+				Data:    aws.String("Data"),
+			},
+		},
+		Source: aws.String(email),
+	}
+	_, err = sesCli.SendEmail(sesInput)
+	if err != nil {
 		log.Fatal(err)
 	}
 

@@ -24,7 +24,7 @@ functions:
     handler: bin/hello
     name: hello
     environment:
-      bucket: 'lambdaexample0' # write bucket example.
+      bucket: 'xxxxx' # write bucket example.
     events:
       - s3:
           bucket: serverless-example-s3 # read bucket example.
